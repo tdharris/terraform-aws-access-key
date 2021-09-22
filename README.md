@@ -200,22 +200,16 @@ Decrypt an existing AWS Key that is already being managed by terraform.
     aws_access_key_id = "<new-access-key-id>"
     aws_decrypted_secret = "<decrypted-secret>"
     ```
-- Update my key and show it was successful:
+- Update AWS Access Key and validate:
     ```shell
-    # Update bitwarden with my new key id and secret
-    # Then sync bw cli as this is how I source by aws keys
-    $ bw sync
-    Syncing complete.
-    $ envaws-personal
-    $ awsme
+    # Update environment with new aws access key
+    # Validate newly created Access Key ID and Secret Access Key
+    $ aws sts get-caller-identity
     {
         "UserId": "<user-id>",
         "Account": "<account-id>",
         "Arn": "arn:aws:iam::<account-id>:user/mycli"
     }
-    $ printenv | grep 'AWS_.*ACCESS'
-    AWS_SECRET_ACCESS_KEY=<new-secret-access-key>
-    AWS_ACCESS_KEY_ID=<new-access-key-id>
     ```
 
 ## Security
