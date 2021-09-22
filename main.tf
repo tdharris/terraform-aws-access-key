@@ -12,7 +12,7 @@ data "aws_iam_user" "current" {
   user_name = local.aws_user_name
 }
 
-resource "aws_iam_access_key" "example" {
+resource "aws_iam_access_key" "key" {
   user    = local.aws_user_name
   pgp_key = var.pgp_key
 }
@@ -21,6 +21,6 @@ resource "aws_iam_access_key" "example" {
 # data "external" "external_keybase_decrypt" {
 #   program = ["${path.module}/lib/external_keybase_decrypt.sh"]
 #   query = {
-#     encrypted_secret = aws_iam_access_key.example.encrypted_secret
+#     encrypted_secret = aws_iam_access_key.key.encrypted_secret
 #   }
 # }
