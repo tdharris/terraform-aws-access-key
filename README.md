@@ -2,7 +2,7 @@
 Create, delete, rotate AWS IAM Access Keys with Terraform. Secret is encrypted and decrypted with `pgp_key` (keybase).
 
 ## Install
-TODO
+Clone the project.
 
 ### Dependencies
 Ensure that [keybase cli](https://keybase.io/docs/the_app/install_linux) is installed and you are logged in. Verify username with:
@@ -15,8 +15,8 @@ AWS Access Key is managed by terraform. Simply destroy and apply to rotate. Use 
 
 ### Setup a new key
 Create a new AWS Key to be managed by terraform.
-- Create a `terraform.tfvars` file (see [Security](#security) for more info):
-    ```tfvar
+- (*conditional one-time*) Create a `terraform.tfvars` file (see [Security](#security) for more info):
+    ```hcl
     pgp_key = "keybase:some_person_that_exists"
     ```
 - (*optional*) Create a Terraform Workspace:
@@ -88,7 +88,7 @@ Decrypt an existing AWS Key that is already being managed by terraform.
     ```
 - Rotate the key
     ```shell
-    $ ./rotate-aws-key.sh 
+    $ ./aws-key.sh rotate
     Previously invoked identity (tfstate):
     {
     "account_id" = "<account-id>"
@@ -213,10 +213,13 @@ Decrypt an existing AWS Key that is already being managed by terraform.
         "Account": "<account-id>",
         "Arn": "arn:aws:iam::<account-id>:user/mycli"
     }
-    $ printenv | grep 'AWS_ACCESS_KEY_ID'
+    $ printenv | grep 'AWS_.*ACCESS'
+    AWS_SECRET_ACCESS_KEY=<new-secret-access-key>
     AWS_ACCESS_KEY_ID=<new-access-key-id>
     ```
 
 ## Security
 To avoid storing the secret in plaintext in `tfstate`, the secret is encrypted with a [pgp_key](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_access_key#pgp_key):
 > Either a base-64 encoded PGP public key, or a keybase username in the form `keybase:some_person_that_exists`, for use in the `encrypted_secret` output attribute.
+
+**Note** : Currently, only `keybase` decryption is available with the `aws-key.sh` script.
