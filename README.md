@@ -9,6 +9,7 @@ Create, delete, rotate AWS IAM Access Keys with Terraform. Secret is encrypted a
     - [Decrypt a key](#decrypt-a-key)
     - [Import an existing key](#import-an-existing-key)
     - [Update key status](#update-key-status)
+    - [Delete an existing key](#delete-an-existing-key)
   - [Sample Output](#sample-output)
     - [Rotate a key](#rotate-a-key-1)
   - [Security](#security)
