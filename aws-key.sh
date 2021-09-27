@@ -25,6 +25,7 @@ Options:
 
 Commands:
     create      Create a new AWS Key.
+    delete      Delete an existing AWS Key.
     rotate      Rotate an existing AWS Key.
     decrypt     Output decrypted AWS Key.
     update      Update the status of an AWS Key (active or inactive). (default is active)
@@ -33,7 +34,7 @@ EOF
     exit
 }
 
-COMMANDS=("create" "rotate" "decrypt" "update")
+COMMANDS=("create" "delete" "rotate" "decrypt" "update")
 
 [[ $# -eq 0 ]] && usage
 
@@ -160,7 +161,6 @@ function validate_identity {
 }
 
 function rotate_keys {
-    # TODO: HERE
     access_key_id="$(terraform output -raw aws_access_key_id)"
     if ! ask "Rotate aws access key '$access_key_id' ?"; then exit 1; fi
     echo -e "Rotating access key with terraform destroy, then apply..."
@@ -199,6 +199,14 @@ function update_key {
     echo -e "${color_success}✔${color_normal} Success\n"
 }
 
+function delete_key {
+    local -r access_key_id="$(terraform output -raw aws_access_key_id)"
+    if ! ask "Delete aws access key '$access_key_id' ?"; then exit 1; fi
+    echo -e "Deleting access key with terraform destroy..."
+    terraform destroy -auto-approve && \
+    echo -e "${color_success}✔${color_normal} Success\n"
+}
+
 function exec_rotate {
     echo "INFO: Exec Rotate AWS Key..."
     validate_identity
@@ -210,6 +218,12 @@ function exec_create {
     echo "INFO: Exec Create AWS Key..."
     terraform apply -auto-approve
     decrypt_key_info
+}
+
+function exec_delete {
+    echo "INFO: Exec Delete AWS Key..."
+    validate_identity
+    delete_key
 }
 
 function exec_decrypt {
@@ -236,6 +250,7 @@ function exec_update {
 # Execute
 case $COMMAND in
     create) exec_create ;;
+    delete) exec_delete ;;
     rotate) exec_rotate ;;
     decrypt) exec_decrypt ;;
     update) exec_update "$1" ;;

@@ -14,13 +14,20 @@ Create, delete, rotate AWS IAM Access Keys with Terraform. Secret is encrypted a
   - [Security](#security)
 
 ## Install
-Clone the project.
+Clone the project: See [Cloing a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository).
 
 ### Dependencies
-Ensure that [keybase cli](https://keybase.io/docs/the_app/install_linux) is installed and you are logged in. Verify username with:
-```console
-keybase whoami
-```
+- Ensure that [keybase cli](https://keybase.io/docs/the_app/install_linux) is installed and you are logged in. Verify username with:
+    ```console
+    keybase whoami
+    ```
+
+- Authentication with the AWS Provider occurs with the following [Environment Variables](https://registry.terraform.io/providers/hashicorp/aws/3.48.0/docs#environment-variables) set:
+    ```console
+    $ export AWS_ACCESS_KEY_ID="key-id"
+    $ export AWS_SECRET_ACCESS_KEY="secret-key"
+    $ export AWS_DEFAULT_REGION="us-east-2"
+    ```
 
 ## Usage
 AWS Access Key is managed by terraform. Simply destroy and apply to rotate. Use [terraform workspaces](https://www.terraform.io/docs/language/state/workspaces.html) for managing multiple keys.
@@ -54,6 +61,9 @@ Create a new AWS Key to be managed by terraform.
 
 ### Rotate a key
 Rotate an existing AWS Key that is already being managed by terraform.
+
+**Note** : This will simply destroy the existing key and create a replacement.
+
 - Select the appropriate Terraform Workspace:
 
     **Note** : Each key is managed with a different workspace to separate state files. If not using the `default` workspace, create a new one or select an existing one.
@@ -93,6 +103,7 @@ Decrypt an existing AWS Key that is already being managed by terraform.
     ```
 
 ### Import an existing key
+Import an existing key that may have been created manually into tfstate.
 - Create a Terraform Workspace:
     ```console
     teraform workspace new <name>
@@ -103,6 +114,7 @@ Decrypt an existing AWS Key that is already being managed by terraform.
     ```
 
 ### Update key status
+Make an existing key `Active` or `Inactive`.
 - Select the Terraform Workspace:
     ```console
     terraform workspace select <name>
@@ -110,6 +122,17 @@ Decrypt an existing AWS Key that is already being managed by terraform.
 - Update the key to inactive or active:
     ```console
     ./aws-key.sh update inactive
+    ```
+
+### Delete an existing key
+Deletes the key with `terraform destroy` after validating the current aws identity.
+- Select the Terraform Workspace:
+    ```console
+    terraform workspace select <name>
+    ```
+- Delete the key:
+    ```console
+    ./aws-key.sh delete
     ```
 
 ## Sample Output
@@ -123,10 +146,10 @@ Decrypt an existing AWS Key that is already being managed by terraform.
     $ ./aws-key.sh rotate
     Previously invoked identity (tfstate):
     {
-    "account_id" = "<account-id>"
-    "arn" = "arn:aws:iam::<account-id>:user/mycli"
-    "id" = "<account-id>"
-    "user_id" = "<user-id>"
+        "account_id" = "<account-id>"
+        "arn" = "arn:aws:iam::<account-id>:user/mycli"
+        "id" = "<account-id>"
+        "user_id" = "<user-id>"
     }
     Current AWS Identity: 
     {
