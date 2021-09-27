@@ -80,6 +80,16 @@ Decrypt an existing AWS Key that is already being managed by terraform.
     ./aws-key.sh decrypt
     ```
 
+### Import an existing key
+- Create a Terraform Workspace:
+    ```console
+    teraform workspace new <name>
+    ```
+- Import the key:
+    ```console
+    terraform import aws_iam_access_key.key <access_key_id>
+    ```
+
 ## Sample Output
 ### Rotate a key
 - Select the workspace
