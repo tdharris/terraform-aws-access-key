@@ -4,7 +4,7 @@ output "aws_caller_identity" {
 }
 
 output "aws_user_name" {
-  value = local.aws_user_name
+  value = aws_iam_access_key.key.user
 }
 
 output "encrypted_secret" {

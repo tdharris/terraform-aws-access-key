@@ -90,6 +90,16 @@ Decrypt an existing AWS Key that is already being managed by terraform.
     terraform import aws_iam_access_key.key <access_key_id>
     ```
 
+### Update key status
+- Select the Terraform Workspace:
+    ```console
+    terraform workspace select <name>
+    ```
+- Update the key to inactive or active:
+    ```console
+    ./aws-key.sh update inactive
+    ```
+
 ## Sample Output
 ### Rotate a key
 - Select the workspace

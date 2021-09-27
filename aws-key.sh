@@ -27,12 +27,13 @@ Commands:
     create      Create a new AWS Key.
     rotate      Rotate an existing AWS Key.
     decrypt     Output decrypted AWS Key.
+    update      Update the status of an AWS Key (active or inactive). (default is active)
 
 EOF
     exit
 }
 
-COMMANDS=("create" "rotate" "decrypt")
+COMMANDS=("create" "rotate" "decrypt" "update")
 
 [[ $# -eq 0 ]] && usage
 
@@ -185,6 +186,19 @@ EOF
 
 }
 
+function update_key {
+    local status="$1"
+    local -r user="$(terraform output -raw aws_user_name)"
+    local -r key_id="$(terraform output -raw aws_access_key_id)"
+
+    echo "INFO: Updating $user '$key_id' to status '$status'"
+    aws iam update-access-key \
+        --access-key-id "$key_id" \
+        --status "$status" \
+        --user-name "$user" && \
+    echo -e "${color_success}✔${color_normal} Success\n"
+}
+
 function exec_rotate {
     echo "INFO: Exec Rotate AWS Key..."
     validate_identity
@@ -203,10 +217,27 @@ function exec_decrypt {
     decrypt_key_info
 }
 
+function exec_update {
+    local status="${1:-Active}"
+    
+    # Uppercase the first character
+    status="${status^}"
+
+    if [[ "$status" != "Active" && "$status" != "Inactive" ]]; then
+        echo "ERROR: Value '$status' at 'status' failed to satisfy constraint: Member must satisfy enum value set: [Active, Inactive]"
+        exit 1
+    fi
+
+    echo "INFO: Exec Update AWS Key..."
+    validate_identity
+    update_key "$status"
+}
+
 # Execute
 case $COMMAND in
     create) exec_create ;;
     rotate) exec_rotate ;;
     decrypt) exec_decrypt ;;
+    update) exec_update "$1" ;;
     *) echo "ERROR: Unknown COMMAND: '$COMMAND'"; exit 1 ;;
 esac
