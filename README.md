@@ -1,6 +1,18 @@
 # Manage AWS IAM Access Keys
 Create, delete, rotate AWS IAM Access Keys with Terraform. Secret is encrypted and decrypted with `pgp_key` (keybase).
 
+  - [Install](#install)
+    - [Dependencies](#dependencies)
+  - [Usage](#usage)
+    - [Setup a new key](#setup-a-new-key)
+    - [Rotate a key](#rotate-a-key)
+    - [Decrypt a key](#decrypt-a-key)
+    - [Import an existing key](#import-an-existing-key)
+    - [Update key status](#update-key-status)
+  - [Sample Output](#sample-output)
+    - [Rotate a key](#rotate-a-key-1)
+  - [Security](#security)
+
 ## Install
 Clone the project.
 
