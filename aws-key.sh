@@ -29,12 +29,13 @@ Commands:
     rotate      Rotate an existing AWS Key.
     decrypt     Output decrypted AWS Key.
     update      Update the status of an AWS Key (active or inactive). (default is active)
+    bw-sync     Sync the AWS Key to the BW Vault (customized).
 
 EOF
     exit
 }
 
-COMMANDS=("create" "delete" "rotate" "decrypt" "update")
+COMMANDS=("create" "delete" "rotate" "decrypt" "update" "bw-sync")
 
 [[ $# -eq 0 ]] && usage
 
@@ -247,12 +248,135 @@ function exec_update {
     update_key "$status"
 }
 
+function bw_update_item_json {
+    local -r item="$1"
+    local -r key="$2"
+    local -r value="$3"
+    echo "$item" | jq -r --arg KEY "$key" --arg VALUE "$value" '(.fields[] | select(.name == $KEY)).value |= $VALUE'
+}
+
+function exec_wrap_bw_vault_sync {
+    local -r stdin="$1"
+    local bw_item_name="$2"
+
+    echo -e "$stdin\n"
+
+    echo "INFO: Exec BW Vault Sync..."
+    if [[ -z "$stdin" ]]; then
+        echo "ERROR: Missing stdin"
+        return 1
+    fi
+
+    local -r key_name="aws_access_key_id"
+    local -r value_name="aws_decrypted_secret"
+
+    local -r key="$(echo "$stdin" | grep "$key_name" | cut -d= -f2 | jq -r)"
+    local -r value="$(echo "$stdin" | grep "$value_name" | cut -d= -f2 | jq -r)"
+
+    command -v bw >/dev/null 2>&1 || { echo >&2 "bw could not be found."; exit 1; }
+    command -v jq >/dev/null 2>&1 || { echo >&2 "jq could not be found."; exit 1; }
+
+    local -r bw_vault_status="$(bw status | jq -r '.status')"
+    if [[ "$bw_vault_status"  != 'unlocked' ]]; then
+        echo "ERROR: BW Vault is not unlocked. Please run 'bw unlock' first."
+        exit 1
+    fi
+
+    if [[ -z "$bw_item_name" ]]; then
+        local -r default_item_suffix="-env"
+        bw_item_name="$(terraform workspace show)$default_item_suffix" || {
+            echo "ERROR: Failed to get current workspace name"
+            return 1
+        }
+    fi
+
+    declare -A REPLACEMENTS=(
+        ["AWS_ACCESS_KEY_ID"]="$key" 
+        ["AWS_SECRET_ACCESS_KEY"]="$value" 
+    )
+
+    exec_bw_vault_sync "$bw_item_name"
+}
+
+function bw_vault_sync_cleanup {
+    rm -f "/tmp/.bw_item.json" "/tmp/.bw_item_new.json" 2>/dev/null
+}
+
+function exec_bw_vault_sync {
+    local item_name="${1}"
+    local -r git_diff_orig="/tmp/.bw_item.json"
+    local -r git_diff_new="/tmp/.bw_item_new.json"
+    # DEPENDS_ON: global env var "REPLACEMENTS"
+
+    echo "INFO: Getting BW Vault item '$item_name'..."
+    local bw_item="$(bw get item "$item_name")" || {
+        echo "ERROR: Failed to get item '$item_name'"
+        bw_vault_sync_cleanup
+        return 1
+    }
+    local -r bw_item_id="$(echo "$bw_item" | jq -r '.id')"
+
+    # For later git diff
+    echo "$bw_item" | jq -r '.' > "$git_diff_orig"
+
+    for k in "${!REPLACEMENTS[@]}"; do
+        local v="${REPLACEMENTS[$k]}"
+        echo "INFO: Setting '$k' => '$v'"
+        bw_item="$(bw_update_item_json "$bw_item" "$k" "$v")" || {
+            echo "ERROR: Failed to update item '$item_name'"
+            bw_vault_sync_cleanup
+            return 1
+        }
+    done
+
+    echo -e "INFO: Updated BW Vault item:"
+    echo "$bw_item" > "$git_diff_new"
+    # Handling possible errors internally here..
+    set +e
+    git diff --no-index "$git_diff_orig" "$git_diff_new"
+    local -r rc="$?"
+    # expecting $? to be 1 if there is a diff
+    if [[ "$rc" -eq 0 ]]; then
+        echo "INFO: No changes to sync"
+        bw_vault_sync_cleanup
+        return 0
+    elif [[ "$rc" -gt 1 ]]; then
+        echo "ERROR: Unanticipated git diff result '$rc'"
+        bw_vault_sync_cleanup
+        return 1
+    fi
+
+    echo
+    if ! ask "Update item '$item_name' with above field value changes?"; then
+        echo "INFO: Skipping..."
+        bw_vault_sync_cleanup
+        return 1
+    fi   
+
+    echo "INFO: Editing BW Vault item..."
+    echo "$bw_item" | bw encode | bw edit item "$bw_item_id" || {
+        echo "ERROR: Failed to edit item"
+        bw_vault_sync_cleanup
+        return 1
+    }
+
+    echo "INFO: Syncing BW Vault item '$item_name'..."
+    bw sync || {
+        echo "ERROR: Failed to sync item with bw"
+        bw_vault_sync_cleanup
+        return 1
+    }
+
+    echo -e "\n${color_success}✔${color_normal} Success\n"
+}
+
 # Execute
 case $COMMAND in
     create) exec_create ;;
     delete) exec_delete ;;
     rotate) exec_rotate ;;
     decrypt) exec_decrypt ;;
+    bw-sync) exec_wrap_bw_vault_sync "$(exec_decrypt)" ;;
     update) exec_update "$1" ;;
     *) echo "ERROR: Unknown COMMAND: '$COMMAND'"; exit 1 ;;
 esac
