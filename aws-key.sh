@@ -264,11 +264,10 @@ function exec_bws_secret_sync {
 
     # Secret name based on workspace with suffix
     echo "INFO: Retrieving secret name based on current terraform workspace..."
-    local -r secret_prefix="$(terraform workspace show)" || {
+    local -r secret_name="$(terraform workspace show)" || {
         echo "ERROR: Failed to get current workspace name"
         return 1
     }
-    local -r secret_name="$secret_prefix-env"
 
     echo "INFO: Finding secret '$secret_name'..."
     local -r secret_id="$(bws_find_secret "$secret_name")" || return 1
